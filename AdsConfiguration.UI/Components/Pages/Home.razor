@@ -1,0 +1,123 @@
+﻿@page "/"
+@using AdsConfiguration.UI.Model
+@using AdsConfiguration.UI.Services
+@inject AdsServiceHttp AdService
+@rendermode InteractiveServer
+
+@code {
+    private List<AdModel> ads;
+    private bool isModalOpen = false;
+    private AdModel selectedAd = new AdModel();
+    private bool isEditMode = false;
+    private string modalShowClass = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        ads = await AdService.GetAdsAsync();
+    }
+
+
+    private void OpenModal(AdModel ad = null)
+    {
+        if (ad == null)
+        {
+            selectedAd = new AdModel();
+            isEditMode = false;
+        }
+        else
+        {
+            selectedAd = new AdModel
+            {
+                AdId = ad.AdId,
+                AdDescription = ad.AdDescription,
+                AdStatus = ad.AdStatus,
+                AdTotalLeads = ad.AdTotalLeads
+            };
+            isEditMode = true;
+        }
+
+        isModalOpen = true;
+        modalShowClass = "show";
+        StateHasChanged();
+    }
+    private void CloseModal()
+    {
+        isModalOpen = false;
+        modalShowClass = ""; 
+        StateHasChanged(); 
+    }
+
+    
+
+    private async Task SaveAd()
+    {
+        await AdService.SaveAsync(selectedAd);
+        ads = await AdService.GetAdsAsync();
+        isModalOpen = false;
+        CloseModal();
+    }
+
+}
+
+<h3>Ad Management</h3>
+<button class="btn btn-primary" @onclick="() => OpenModal()">Add Ad</button>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Ad ID</th>
+        <th>Description</th>
+        <th>Status</th>
+        <th>Total Leads</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    @if (ads is not null)
+    {
+        <tbody>
+        @foreach (var ad in ads)
+        {
+            <tr>
+                <td>@ad.AdId</td>
+                <td>@ad.AdDescription</td>
+                <td>@ad.AdStatus</td>
+                <td>@ad.AdTotalLeads</td>
+                <td>
+                    <button class="btn btn-info" @onclick="() => OpenModal(ad)">Edit</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    }
+</table>
+
+@if (isModalOpen)
+{
+    <div class="modal fade @modalShowClass" style="display:@(isModalOpen ? "block" : "none")" tabindex="-1" aria-labelledby="adModalLabel" aria-hidden="@(isModalOpen ? "false" : "true")">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@((isEditMode ? "Edit" : "Add") + " Ad")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@selectedAd" OnValidSubmit="SaveAd">
+                        <div class="mb-3">
+                            <label for="adDescription" class="form-label">Description</label>
+                            <InputText id="adDescription" class="form-control" @bind-Value="selectedAd.AdDescription" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="adStatus" class="form-label">Status</label>
+                            <InputText id="adStatus" class="form-control" @bind-Value="selectedAd.AdStatus" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="adTotalLeads" class="form-label">Total Leads</label>
+                            <InputNumber id="adTotalLeads" class="form-control" @bind-Value="selectedAd.AdTotalLeads" />
+                        </div>
+                        <button type="submit" class="btn btn-success">Save</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
